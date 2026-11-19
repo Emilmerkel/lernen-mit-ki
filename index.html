@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lernen mit KI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,700..900&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: dunkle Agentur-Ästhetik mit Rasterlinien statt Rundkarten, extrabreite Display-Schrift, Mono-Labels, invertierte weisse Blöcke für Kernaussagen, Halbton-Punkte als Textur. Jeder Bereich ist eine eigene Seite. */
+:root{
+  --bg:#171717; --panel:#0d0d0d; --panel-2:#212121; --fg:#ffffff; --muted:#a3a3a3; --dim:#6e6e6e;
+  --line:rgba(255,255,255,.12); --line-strong:rgba(255,255,255,.28); --dot:rgba(255,255,255,.16);
+  --inv-bg:#ffffff; --inv-fg:#0a0a0a;
+  --good:#7ee2a8; --good-soft:rgba(126,226,168,.08); --good-line:rgba(126,226,168,.35);
+  --bad:#ff7a6b; --bad-soft:rgba(255,122,107,.08); --bad-line:rgba(255,122,107,.35);
+  --warn:#f5c862; --warn-soft:rgba(245,200,98,.08); --warn-line:rgba(245,200,98,.35);
+  --f-display:"Archivo","Arial Black",Arial,sans-serif;
+  --f-body:"Geist","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"Geist Mono",ui-monospace,Menlo,Consolas,monospace;
+  --nav-h:72px; --wrap:1240px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:auto}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-weight:400;font-size:1.0625rem;line-height:1.6;letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+a{color:inherit}
+::selection{background:var(--inv-bg);color:var(--inv-fg)}
+:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
+h1,h2,h3,h4{margin:0;line-height:1.08;text-wrap:balance}
+p{margin:0}
+strong{font-weight:600}
+.wrap{max-width:var(--wrap);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stack{display:flex;flex-direction:column;gap:1rem}
+
+/* ---------- Navigation ---------- */
+.nav{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:50;background:linear-gradient(var(--bg) 55%,transparent)}
+.nav .wrap{height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.logo{display:inline-flex;width:44px;height:44px;background:var(--inv-bg);align-items:center;justify-content:center;flex:0 0 auto}
+.logo svg{width:26px;height:26px}
+.logo svg path{stroke:var(--inv-fg)}
+.h2 + .lead,.theory-intro .lead{margin-top:1.3rem}
+.nav ul{list-style:none;margin:0;padding:4px;display:flex;gap:2px;background:var(--panel);border:1px solid var(--line)}
+.nav a.link{display:block;text-decoration:none;font-family:var(--f-body);font-weight:500;font-size:.95rem;padding:.6rem .9rem;color:var(--muted);transition:background .2s,color .2s;white-space:nowrap}
+.nav a.link:hover{color:var(--fg);background:var(--panel-2)}
+.nav a.link.active{color:var(--inv-fg);background:var(--inv-bg)}
+.burger{display:none;height:44px;padding:0 14px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;align-items:center;justify-content:center}
+.burger span{display:block;width:16px;height:16px;position:relative;transition:transform .25s}
+.burger span::before,.burger span::after{content:"";position:absolute;left:0;top:7px;width:16px;height:2px;background:currentColor}
+.burger span::after{transform:rotate(90deg)}
+.burger[aria-expanded="true"] span{transform:rotate(45deg)}
+@media (max-width:900px){
+  .burger{display:inline-flex}
+  .nav ul{position:absolute;top:var(--nav-h);left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));flex-direction:column;padding:6px;display:none}
+  .nav ul.open{display:flex}
+  .nav a.link{font-size:1.15rem;padding:.95rem 1rem}
+}
+
+/* ---------- Grundbausteine ---------- */
+main{padding-top:calc(var(--nav-h) + env(safe-area-inset-top,0px));min-height:100vh;background:var(--bg)}
+section.area{min-height:calc(100vh - var(--nav-h));padding-block:clamp(2.5rem,6vw,4.5rem) clamp(3.5rem,8vw,6rem)}
+.eyebrow{display:flex;align-items:center;gap:1rem;font-family:var(--f-mono);font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:1.6rem}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--line)}
+.h2{font-family:var(--f-body);font-weight:500;font-size:clamp(2rem,5vw,3.4rem);letter-spacing:-.035em;line-height:1.02;max-width:20ch}
+.h3{font-family:var(--f-body);font-weight:500;font-size:clamp(1.4rem,2.6vw,1.9rem);letter-spacing:-.03em}
+.lead{font-size:1.15rem;color:var(--muted);max-width:56ch;line-height:1.55}
+.soft{color:var(--dim)}
+.callout{display:block;background:var(--inv-bg);color:var(--inv-fg);padding:1.3rem 1.5rem;font-size:1.15rem;font-weight:500;line-height:1.45;max-width:72ch;letter-spacing:-.015em}
+.callout strong{font-weight:700}
+.callout.soft{background:var(--panel);color:var(--fg);border:1px solid var(--line)}
+.note{font-family:var(--f-mono);font-size:.78rem;color:var(--dim);letter-spacing:0;line-height:1.6}
+.note em{font-style:normal}
+.block-gap{margin-top:clamp(3rem,7vw,5rem)}
+.dots-bg{background-image:radial-gradient(var(--dot) 1px,transparent 1.5px);background-size:7px 7px}
+
+/* ---------- Startseite ---------- */
+.hero{position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0 0 auto 0;height:560px;background-image:radial-gradient(var(--dot) 1.1px,transparent 1.6px);background-size:8px 8px;-webkit-mask-image:radial-gradient(ellipse 70% 80% at 85% 10%,#000 10%,transparent 70%);mask-image:radial-gradient(ellipse 70% 80% at 85% 10%,#000 10%,transparent 70%);pointer-events:none}
+.hero .wrap{position:relative;z-index:1}
+.hero h1{font-family:var(--f-display);font-stretch:125%;font-variation-settings:"wdth" 125;font-weight:900;text-transform:uppercase;font-size:clamp(2.6rem,9.2vw,8.4rem);line-height:.86;letter-spacing:-.02em;margin-top:clamp(2.2rem,5vw,3.5rem)}
+.hero h1 .dash{color:var(--dim)}
+.hero h1 .soft{color:var(--dim)}
+.caret{display:inline-block;width:.1em;height:.7em;background:var(--fg);margin-left:.1em;vertical-align:.02em;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.hero-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2rem 4rem;margin-top:clamp(2rem,5vw,3.5rem);align-items:start}
+.hero .lead{font-size:clamp(1.15rem,1.8vw,1.35rem);color:var(--fg);max-width:34ch;letter-spacing:-.02em;font-weight:500}
+.why{border-top:1px solid var(--line-strong);padding-top:1.1rem;color:var(--muted);max-width:52ch}
+.why strong:first-child{display:block;font-family:var(--f-mono);font-weight:400;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--fg);margin-bottom:.7rem}
+.how{margin-top:clamp(3rem,7vw,5rem)}
+.how h2{font-family:var(--f-mono);font-weight:400;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:1rem;display:flex;gap:1rem;align-items:center}
+.how h2::after{content:"";flex:1;height:1px;background:var(--line)}
+.how ul{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.how li{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.how a{display:flex;flex-direction:column;gap:.9rem;height:100%;text-decoration:none;padding:1.4rem 1.3rem 1.6rem;transition:background .2s,color .2s}
+.how a:hover{background:var(--inv-bg);color:var(--inv-fg)}
+.how a:hover span{color:#444}
+.how a strong{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:800;font-size:1.05rem;text-transform:none;display:flex;align-items:center;justify-content:space-between;gap:.5rem;letter-spacing:0}
+.how a strong::after{content:"";width:20px;height:20px;flex:0 0 auto;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='square'%3E%3Cpath d='M4 12h15M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='square'%3E%3Cpath d='M4 12h15M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;transition:transform .2s}
+.how a:hover strong::after{transform:translateX(4px)}
+.how a span{color:var(--muted);font-size:.98rem;line-height:1.5}
+.hero-foot{margin-top:2.5rem;display:flex;flex-direction:column;gap:1.2rem}
+@media (max-width:1000px){.how ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.hero-grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){.how ul{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- Do's & Don'ts ---------- */
+.tips{list-style:none;padding:0;margin:1.5rem 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.tip{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:1.4rem 1.4rem 1.6rem;display:flex;flex-direction:column;gap:.8rem;transition:background .2s}
+.tip:hover{background:var(--panel)}
+.tip strong{font-family:var(--f-body);font-weight:500;font-size:1.25rem;line-height:1.2;letter-spacing:-.025em;display:flex;flex-direction:column;gap:1.4rem}
+.tip .num{font-family:var(--f-mono);font-size:.75rem;font-weight:400;color:var(--muted);letter-spacing:.04em;border:1px solid var(--line-strong);padding:.15rem .45rem;align-self:flex-start}
+.tip p{color:var(--muted);font-size:.98rem;line-height:1.55}
+@media (max-width:900px){.tips{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.tips{grid-template-columns:minmax(0,1fr)}}
+.vs-title{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:900;font-size:clamp(1.8rem,5vw,3.4rem);letter-spacing:-.01em;line-height:.95;margin-bottom:1.8rem}
+.vs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:0;border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.vs > *{border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.vs .head{font-family:var(--f-mono);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;padding:.9rem 1.2rem;display:flex;align-items:center;gap:.6rem}
+.vs .head.do-h{color:var(--good);background:var(--good-soft)}
+.vs .head.dont-h{color:var(--bad);background:var(--bad-soft)}
+.vs .item{display:flex;gap:.9rem;align-items:flex-start;padding:1rem 1.2rem;font-size:1.02rem;line-height:1.45}
+.vs .ic{flex:0 0 auto;width:22px;height:22px;display:grid;place-items:center;margin-top:.05rem;border:1px solid}
+.vs .do .ic{color:var(--good);border-color:var(--good-line)}
+.vs .dont .ic{color:var(--bad);border-color:var(--bad-line)}
+.vs .dont{color:var(--muted)}
+.vs .ic svg{width:13px;height:13px}
+@media (max-width:640px){
+  .vs{grid-template-columns:minmax(0,1fr)}
+  .vs .do-h{order:0}.vs .do{order:1}.vs .dont-h{order:2;border-top:1px solid var(--line);margin-top:1.5rem}.vs .dont{order:3}
+}
+.merke{margin-top:2rem}
+
+/* ---------- Prompts ---------- */
+.parts-key{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;margin-top:2.5rem;margin-bottom:.9rem;font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--dim)}
+.parts-key span{display:inline-flex;align-items:center;gap:.5rem}
+.parts-key span::before{content:"";width:8px;height:8px;background:currentColor}
+.parts-key .q{color:var(--fg)}
+.parts-key .lbl{color:var(--muted)}
+.parts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.part{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:1.3rem 1.3rem 1.4rem;display:flex;flex-direction:column;gap:.5rem}
+.part .lbl{font-family:var(--f-mono);font-size:.72rem;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.part .q{font-weight:500;font-size:1.2rem;line-height:1.25;letter-spacing:-.025em}
+.part .ex{color:var(--dim);font-size:.95rem;margin-top:auto;padding-top:.8rem}
+@media (max-width:900px){.parts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.parts{grid-template-columns:minmax(0,1fr)}}
+.compare{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:0;margin-top:2.5rem;border:1px solid var(--line)}
+.cmp{padding:1.3rem 1.4rem}
+.cmp + .cmp{border-left:1px solid var(--line)}
+.cmp strong{display:inline-block;font-family:var(--f-mono);font-weight:400;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.8rem;padding:.15rem .45rem;border:1px solid}
+.cmp.bad strong{color:var(--bad);border-color:var(--bad-line)}.cmp.good strong{color:var(--good);border-color:var(--good-line)}
+.cmp p{font-family:var(--f-mono);font-size:.88rem;line-height:1.75;color:var(--muted)}
+.cmp.good p{color:var(--fg)}
+@media (max-width:700px){.compare{grid-template-columns:minmax(0,1fr)}.cmp + .cmp{border-left:0;border-top:1px solid var(--line)}}
+.lib-head{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:2.5rem;align-items:start}
+.steps{margin:1rem 0 0;padding:0;list-style:none;counter-reset:s;display:flex;flex-direction:column}
+.steps li{counter-increment:s;display:flex;gap:1rem;align-items:baseline;padding:.75rem 0;border-top:1px solid var(--line)}
+.steps li::before{content:"0" counter(s);font-family:var(--f-mono);font-size:.75rem;color:var(--muted);flex:0 0 auto}
+.howto{border:1px solid var(--line);padding:1.3rem 1.4rem .6rem;background:var(--panel)}
+.howto > strong{font-family:var(--f-mono);font-weight:400;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+@media (max-width:860px){.lib-head{grid-template-columns:minmax(0,1fr);gap:1.5rem}}
+.filters-bar{position:sticky;top:calc(var(--nav-h) + env(safe-area-inset-top,0px));z-index:5;margin-top:2.5rem;padding-block:.75rem;background:var(--bg);border-bottom:1px solid var(--line)}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.filters::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;font:400 .8rem/1 var(--f-mono);text-transform:uppercase;letter-spacing:.05em;padding:.75rem .95rem;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.chip:hover{color:var(--fg);border-color:var(--line-strong)}
+.chip[aria-pressed="true"]{background:var(--inv-bg);border-color:var(--inv-bg);color:var(--inv-fg)}
+.group{margin-top:2.5rem}
+.group > h3{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:900;font-size:clamp(1.5rem,3.5vw,2.2rem);display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem;letter-spacing:-.01em}
+.group > h3::after{content:"";flex:1;height:1px;background:var(--line)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px}
+.prompt{position:relative;background:var(--panel);border:1px solid var(--line);padding:1.2rem 1.2rem 1.3rem;display:flex;flex-direction:column;gap:.9rem;min-width:0;transition:border-color .2s}
+.prompt:hover{border-color:var(--line-strong)}
+.prompt-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem}
+.prompt h4{font-weight:500;font-size:1.1rem;letter-spacing:-.02em;padding-top:.45rem}
+.prompt .text{font-family:var(--f-mono);font-size:.84rem;line-height:1.75;color:var(--muted);overflow-wrap:anywhere}
+.ph{color:var(--fg);background:rgba(255,255,255,.1);padding:0 .2em}
+.copy{flex:0 0 auto;position:relative;width:42px;height:42px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;display:grid;place-items:center;transition:background .15s,color .15s,border-color .15s}
+.copy:hover{background:var(--inv-bg);color:var(--inv-fg);border-color:var(--inv-bg)}
+.copy svg{width:18px;height:18px}
+.copy .ok{display:none}
+.copy.done{background:var(--good);border-color:var(--good);color:var(--inv-fg)}
+.copy.done .ok{display:block}.copy.done .ic-copy{display:none}
+.toast{position:absolute;right:0;top:calc(100% + 6px);background:var(--inv-bg);color:var(--inv-fg);font:400 .72rem/1 var(--f-mono);text-transform:uppercase;letter-spacing:.05em;padding:.5rem .6rem;white-space:nowrap;opacity:0;transform:translateY(-4px);transition:opacity .2s,transform .2s;pointer-events:none;z-index:2}
+.copy.done .toast{opacity:1;transform:none}
+
+/* ---------- Chatbots ---------- */
+.carousel{position:relative}
+.track{display:flex;align-items:flex-start;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 0 1rem;outline:none}
+.track::-webkit-scrollbar{display:none}
+.track:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.bot{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.bot-head{position:relative;padding:clamp(1.5rem,4vw,2.6rem) clamp(1.2rem,3vw,2rem) 1.4rem;border-bottom:1px solid var(--line);overflow:hidden}
+.bot-head::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dot) 1px,transparent 1.5px);background-size:7px 7px;-webkit-mask-image:linear-gradient(100deg,transparent 35%,#000 95%);mask-image:linear-gradient(100deg,transparent 35%,#000 95%);pointer-events:none}
+.bot-head h3{position:relative;display:flex;flex-wrap:wrap;align-items:baseline;gap:.3em .8em}
+.bot-head h3 strong{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:900;font-size:clamp(2.2rem,7vw,4.8rem);letter-spacing:-.01em;line-height:.9}
+.bot-head .maker{font-family:var(--f-mono);font-size:.8rem;font-weight:400;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.bot-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.bot-body > p:first-child{padding:1.4rem clamp(1.2rem,3vw,2rem);font-size:1.08rem;line-height:1.55}
+.bot-test{padding:1.4rem clamp(1.2rem,3vw,2rem);border-left:1px solid var(--line);color:var(--muted)}
+.bot-test strong{color:var(--fg)}
+.bot-foot{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:1px solid var(--line)}
+.pill{padding:1.1rem clamp(1.2rem,3vw,2rem);line-height:1.45}
+.pill.ok{background:var(--good-soft)}
+.pill.warn{background:var(--warn-soft);border-left:1px solid var(--line)}
+.pill.ok strong{color:var(--good)}.pill.warn strong{color:var(--warn)}
+@media (max-width:760px){.bot-body,.bot-foot{grid-template-columns:minmax(0,1fr)}.bot-test{border-left:0;border-top:1px solid var(--line)}.pill.warn{border-left:0;border-top:1px solid var(--line)}}
+.car-ctrl{display:flex;align-items:center;gap:1rem;margin-top:.5rem}
+.arrow{width:52px;height:52px;border:1px solid var(--line);background:var(--panel);color:var(--fg);cursor:pointer;display:grid;place-items:center;transition:background .15s,color .15s,opacity .15s;flex:0 0 auto}
+.arrow:hover:not(:disabled){background:var(--inv-bg);color:var(--inv-fg)}
+.arrow:disabled{opacity:.3;cursor:default}
+.arrow svg{width:20px;height:20px}
+.dots{display:flex;gap:4px;align-items:center;flex:1}
+.dot{flex:1;height:3px;padding:0;border:0;background:var(--line);cursor:pointer;transition:background .25s;position:relative}
+.dot[aria-current="true"]{background:var(--line)}
+.dot::after{content:"";position:absolute;left:0;top:0;bottom:0;width:0;background:var(--fg)}
+.dot[aria-current="true"]::after{width:100%}
+.carousel.auto .dot.run::after{width:0;animation:fill var(--rot,7s) linear forwards}
+.carousel.auto.paused .dot.run::after{animation-play-state:paused}
+@keyframes fill{to{width:100%}}
+.playpause .ic-play{display:none}
+.carousel:not(.auto) .playpause .ic-play{display:block}
+.carousel:not(.auto) .playpause .ic-pause{display:none}
+.dot::before{content:"";position:absolute;left:0;right:0;top:-14px;bottom:-14px}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);background:var(--panel);margin-top:1.4rem;-webkit-overflow-scrolling:touch}
+table.overview{border-collapse:collapse;width:100%;min-width:800px;font-size:.96rem}
+.overview th,.overview td{padding:.9rem 1rem;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+.overview tr > :last-child{border-right:0}
+.overview thead th{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:800;font-size:1rem;background:var(--panel-2)}
+.overview tbody th{font-family:var(--f-mono);font-weight:400;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+.overview tbody th strong{font-weight:400}
+.overview tr > :first-child{position:sticky;left:0;background:var(--panel-2);z-index:1}
+.overview tbody tr:last-child > *{border-bottom:0}
+.overview tbody tr:hover td{background:rgba(255,255,255,.03)}
+.legend{margin-top:1rem;display:flex;flex-direction:column;gap:.4rem}
+
+/* ---------- Theorie ---------- */
+.theory-intro .h2{max-width:none;font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:900;font-size:clamp(2.2rem,6.5vw,5.4rem);letter-spacing:-.015em;line-height:.9}
+.theory{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin-top:3rem;border-top:1px solid var(--line)}
+.t-block{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:1.5rem 3rem;align-items:start;padding-block:2.4rem;border-bottom:1px solid var(--line)}
+.t-block > h3{font-weight:500;font-size:1.55rem;letter-spacing:-.03em;position:sticky;top:calc(var(--nav-h) + 1.5rem)}
+.t-body{display:flex;flex-direction:column;gap:1.1rem;max-width:66ch;color:var(--muted)}
+.t-body strong{color:var(--fg)}
+@media (max-width:800px){.t-block{grid-template-columns:minmax(0,1fr);gap:1rem}.t-block > h3{position:static}}
+.gap-demo{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:800;font-size:clamp(1.3rem,3vw,2rem);line-height:1.2;color:var(--fg);border:1px solid var(--line);background:var(--panel);padding:1.4rem 1.5rem;position:relative;overflow:hidden}
+.gap-demo::after{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--dot) 1px,transparent 1.5px);background-size:7px 7px;-webkit-mask-image:linear-gradient(90deg,transparent 60%,#000);mask-image:linear-gradient(90deg,transparent 60%,#000);pointer-events:none}
+.gap-demo .blank{display:inline-block;min-width:2.6em;text-align:center;color:var(--inv-fg);background:var(--inv-bg);animation:guess 3s steps(1) infinite}
+@keyframes guess{50%{background:transparent;color:var(--fg)}}
+.quote{border-left:2px solid var(--fg);padding:.1rem 0 .1rem 1.1rem;font-size:1.2rem;color:var(--fg);font-weight:500;letter-spacing:-.02em}
+.info{border:1px solid var(--line);background:var(--panel);padding:1.2rem 1.3rem;color:var(--fg)}
+.risk{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.risk li{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:1.1rem;line-height:1.5;background:var(--bad-soft)}
+.risk li strong{color:var(--bad);font-weight:600}
+@media (max-width:760px){.risk{grid-template-columns:minmax(0,1fr)}}
+.danger{display:flex;gap:.9rem;border:1px solid var(--warn-line);background:var(--warn-soft);padding:1.1rem 1.2rem;font-weight:500;color:var(--fg)}
+.danger svg{flex:0 0 auto;width:24px;height:24px;color:var(--warn)}
+.final{position:relative;overflow:hidden;background:var(--inv-bg);color:var(--inv-fg);padding:clamp(1.8rem,5vw,3.5rem);display:grid;gap:1.2rem;margin-top:3rem}
+.final::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(0,0,0,.2) 1px,transparent 1.5px);background-size:7px 7px;-webkit-mask-image:radial-gradient(ellipse 60% 90% at 100% 0%,#000,transparent 70%);mask-image:radial-gradient(ellipse 60% 90% at 100% 0%,#000,transparent 70%);pointer-events:none}
+.final > *{position:relative}
+.final h3{font-family:var(--f-display);font-variation-settings:"wdth" 125;font-stretch:125%;font-weight:900;font-size:clamp(1.9rem,5vw,3.8rem);letter-spacing:-.015em;line-height:.92;max-width:16ch}
+.final p{font-size:1.15rem;max-width:58ch;font-weight:500;letter-spacing:-.015em}
+.final a{font-weight:700;text-underline-offset:4px;text-decoration-thickness:2px}
+.to-top{display:flex;justify-content:center;padding-block:2.5rem}
+.to-top a{width:52px;height:52px;border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);background:var(--panel)}
+.to-top a:hover{background:var(--inv-bg);color:var(--inv-fg)}
+.to-top svg{width:20px;height:20px}
+.ch-label{display:none}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="wrap">
+    <a class="logo" href="#start" aria-label="Zur Startseite">
+      <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z" stroke="#fff" stroke-width="2"/><path d="M9 10h3" stroke="#ffe24a" stroke-width="2.4"/><path d="M15 8.2v3.6" stroke="#ffe24a" stroke-width="2.4"/></svg>
+    </a>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Menü öffnen"><span></span></button>
+    <ul id="menu">
+      <li><a class="link" href="#start" data-sec="start">Startseite</a></li>
+      <li><a class="link" href="#dos-donts" data-sec="dos-donts">Do’s &amp; Don’ts</a></li>
+      <li><a class="link" href="#prompts" data-sec="prompts">Prompt-Bibliothek</a></li>
+      <li><a class="link" href="#chatbots" data-sec="chatbots">Chatbot-Vergleich</a></li>
+      <li><a class="link" href="#theorie" data-sec="theorie">Theorie</a></li>
+    </ul>
+  </div>
+</header>
+
+<main>
+<!-- ================= BEREICH 1: STARTSEITE ================= -->
+<section class="area hero" id="start">
+  <div class="wrap">
+    <h1>Lernen mit KI <span class="dash">–</span> <span class="soft">aber richtig</span><span class="caret" aria-hidden="true"></span></h1>
+    <div class="hero-grid">
+    <p class="lead">Fast alle nutzen inzwischen ChatGPT oder andere Chatbots für die Schule. Doch oft lässt man sich einfach die Lösung geben und lernt dabei kaum etwas. Diese Website zeigt dir, wie du KI so nutzt, dass sie dir beim Lernen wirklich hilft.</p>
+
+    <div class="why">
+      <p><strong>Warum gibt es diese Website?</strong>
+      Ich habe diese Website im Rahmen meiner Maturaarbeit zum Thema «KI im Schulalltag» erstellt. Dafür habe ich fünf Chatbots getestet und untersucht, welche Chancen und Risiken KI für Schülerinnen und Schüler hat. Die wichtigsten Erkenntnisse findest du hier, kurz und einfach erklärt.</p>
+    </div>
+    </div>
+
+    <div class="how">
+      <h2>So benutzt du die Website</h2>
+      <ul>
+        <li><a href="#prompts"><strong>Prompts:</strong> <span>Hier lernst du, wie ein guter Prompt aufgebaut ist, und findest über 20 Vorlagen für acht Fächer. Einfach kopieren, die Stellen in [Klammern] ausfüllen und loslegen.</span></a></li>
+        <li><a href="#chatbots"><strong>Chatbot-Vergleich:</strong> <span>Welcher Chatbot ist kostenlos, ab welchem Alter darf man ihn nutzen und wie steht es um den Datenschutz? Hier siehst du es auf einen Blick.</span></a></li>
+        <li><a href="#dos-donts"><strong>Do’s &amp; Don’ts:</strong> <span>Die wichtigsten Regeln für den Umgang mit KI, kurz zusammengefasst.</span></a></li>
+        <li><a href="#theorie"><strong>Theorie:</strong> <span>Wie funktioniert ein Chatbot eigentlich, und warum macht er manchmal Fehler?</span></a></li>
+      </ul>
+    </div>
+
+    <div class="hero-foot">
+      <p class="callout"><span><strong>Wichtig:</strong> KI soll dir beim Denken helfen, nicht das Denken für dich übernehmen.</span></p>
+      <p class="note"><em>Stand: Oktober 2026. Chatbots verändern sich schnell, darum können sich einzelne Angaben inzwischen geändert haben.</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BEREICH 2: DO'S & DON'TS ================= -->
+<section class="area" id="dos-donts">
+  <div class="wrap">
+    <span class="eyebrow">Do’s &amp; Don’ts</span>
+    <h2 class="h2">KI richtig nutzen: so lernst du wirklich etwas</h2>
+    <p class="lead">KI kann dir beim Lernen mega helfen, aber nur, wenn du sie richtig einsetzt. Hier sind die wichtigsten Tipps.</p>
+
+    <h3 class="h3 block-gap">💡 Kurze Tipps</h3>
+    <ol class="tips">
+      <li class="tip"><strong><span class="num">1.</span> <span>Zuerst selbst denken</span></strong><p>Versuch eine Aufgabe zuerst allein. Erst wenn du wirklich nicht weiterkommst, fragst du die KI. Sonst lernst du nichts.</p></li>
+      <li class="tip"><strong><span class="num">2.</span> <span>Nach einem Tipp fragen, nicht nach der Lösung</span></strong><p>Bitte die KI, dir nur einen Hinweis zu geben. Unsere Prompt-Vorlagen sind genau dafür gemacht. Aber Achtung: Wenn du nach der Lösung fragst, verraten fast alle Chatbots sie sofort. Da brauchst du selbst ein bisschen Disziplin.</p></li>
+      <li class="tip"><strong><span class="num">3.</span> <span>Nicht alles glauben</span></strong><p>KI klingt immer überzeugt, auch wenn sie falsch liegt. Vergleiche wichtige Antworten mit deinem Schulbuch oder deinen Unterlagen.</p></li>
+      <li class="tip"><strong><span class="num">4.</span> <span>KI ist keine Quelle</span></strong><p>Die KI kann dir helfen, Quellen zu finden und zu verstehen, aber sie ist selbst keine Quelle. Öffne jeden Link selbst und zitiere nie etwas, das du nicht selbst gesehen hast. In meinem Test waren manche Links falsch, und Bücher wurden sogar erfunden.</p></li>
+      <li class="tip"><strong><span class="num">5.</span> <span>Schütze deine Daten</span></strong><p>Schalte in den Einstellungen aus, dass deine Chats zum Training verwendet werden. Und gib keine persönlichen Daten wie deine Adresse oder Telefonnummer ein.</p></li>
+      <li class="tip"><strong><span class="num">6.</span> <span>Sag, wenn du KI benutzt hast</span></strong><p>Wenn du KI für eine Arbeit benutzt, gib das offen an, so wie es deine Lehrperson verlangt. Das ist fair und erspart dir Ärger.</p></li>
+    </ol>
+
+    <div class="block-gap">
+      <h3 class="vs-title">✅ Do’s &amp; ❌ Don’ts</h3>
+      <div class="vs" id="vs">
+        <div class="head do-h">✅ Do</div>
+        <div class="head dont-h">❌ Don’t</div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Lass dir ein Thema erklären, das du nicht verstanden hast.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Lass dir deine Hausaufgaben einfach lösen.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Lass dich vor einer Prüfung abfragen.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Benutz KI in Prüfungen, in denen sie nicht erlaubt ist.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Lass deine eigene Lösung überprüfen.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Schreib die Antwort der KI einfach ab.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Hol dir Feedback zu deinem Text.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Lass die KI deinen ganzen Aufsatz schreiben.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Frag nach Suchbegriffen für deine Recherche.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Übernimm Links und Quellen, ohne sie zu prüfen.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Kontrolliere wichtige Antworten im Schulbuch.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Glaub der KI alles, nur weil sie sicher klingt.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Schalte das Training mit deinen Chats aus.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Gib persönliche Daten ein.</span></div>
+        <div class="item do"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span>Gib an, wofür du KI benutzt hast.</span></div>
+        <div class="item dont"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span>Gib KI-Texte als deine eigenen aus.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BEREICH 3: PROMPT-BIBLIOTHEK ================= -->
+<section class="area" id="prompts">
+  <div class="wrap">
+    <span class="eyebrow">Prompt-Bibliothek</span>
+    <h2 class="h2">So schreibst du einen guten Prompt</h2>
+    <p class="lead">Ein Prompt ist die Anweisung, die du der KI gibst. Je genauer dein Prompt ist, desto besser passt die Antwort zu dir. Ein guter Prompt besteht aus sechs Teilen:</p>
+
+    <div class="parts-key" aria-hidden="false"><span class="lbl">Teil</span><span class="q">Was gehört dazu?</span><span class="ex">Beispiel</span></div>
+    <div class="parts">
+      <div class="part"><strong class="lbl">Rolle</strong> <span class="q">Wer soll die KI sein?</span> <span class="ex">«Du bist eine Biologielehrperson.»</span></div>
+      <div class="part"><strong class="lbl">Aufgabe</strong> <span class="q">Was soll die KI genau machen?</span> <span class="ex">«Erkläre mir die Photosynthese.»</span></div>
+      <div class="part"><strong class="lbl">Kontext</strong> <span class="q">Was ist deine Ausgangslage, und was ist dein Ziel?</span> <span class="ex">«Ich bin in der 4. Klasse und schreibe nächste Woche eine Prüfung.»</span></div>
+      <div class="part"><strong class="lbl">Format</strong> <span class="q">Wie soll die Antwort aussehen?</span> <span class="ex">«Schreibe höchstens 200 Wörter in kurzen Abschnitten.»</span></div>
+      <div class="part"><strong class="lbl">Stil</strong> <span class="q">Wie soll die KI schreiben?</span> <span class="ex">«Verwende einfache Sprache.»</span></div>
+      <div class="part"><strong class="lbl">Input</strong> <span class="q">Was gibst du der KI mit?</span> <span class="ex">einen Text, eine Aufgabe oder deinen Code</span></div>
+    </div>
+
+    <div class="compare">
+      <div class="cmp bad"><strong>Schlecht:</strong><p>Erkläre mir Photosynthese.</p></div>
+      <div class="cmp good"><strong>Gut:</strong><p>Du bist eine erfahrene Biologielehrperson an einem Gymnasium. Erkläre mir, wie die Photosynthese funktioniert. Ich bin in der 4. Klasse und schreibe nächste Woche eine Prüfung darüber. Wir haben vor allem die Ausgangsstoffe, die Produkte und die Rolle des Chlorophylls behandelt. Gliedere die Erklärung in kurze Abschnitte und schreibe höchstens 200 Wörter. Verwende einfache Sprache, aber die richtigen Fachbegriffe. Stelle mir danach drei Fragen, mit denen ich mein Wissen testen kann.</p></div>
+    </div>
+
+    <p class="callout soft" style="margin-top:12px"><span><strong>Der einfache Test:</strong> Würde eine Person, die nichts über deine Aufgabe weiss, deinen Prompt verstehen? Wenn ja, versteht ihn auch die KI.</span></p>
+
+    <div class="lib-head block-gap">
+      <div class="stack">
+        <h2 class="h2">Prompt-Bibliothek</h2>
+        <p class="lead">Hier findest du Vorlagen für acht Fächer und zwei allgemeine Vorlagen. Alle sind nach den sechs Teilen oben aufgebaut und so geschrieben, dass die KI dir beim Lernen hilft, statt die Arbeit für dich zu machen.</p>
+        <p class="callout"><span><strong>Tipp:</strong> Wenn die KI dir trotzdem die Lösung verrät, schau sie nicht sofort an. Versuch zuerst, selbst weiterzukommen. Am meisten lernst du, wenn du selbst nachdenkst.</span></p>
+      </div>
+      <div class="howto">
+        <strong>So funktioniert’s:</strong>
+        <ol class="steps">
+          <li>Wähle dein Fach und die passende Vorlage.</li>
+          <li>Kopiere den Prompt.</li>
+          <li>Ersetze alles in [eckigen Klammern] mit deinen eigenen Angaben.</li>
+          <li>Füge ihn in einen Chatbot deiner Wahl ein.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <div class="filters" id="filters" role="toolbar" aria-label="Nach Fach filtern">
+        <button class="chip" type="button" data-filter="alle" aria-pressed="true">Alle</button>
+        <button class="chip" type="button" data-filter="allgemein" aria-pressed="false">Allgemein</button>
+        <button class="chip" type="button" data-filter="mathematik" aria-pressed="false">Mathematik</button>
+        <button class="chip" type="button" data-filter="deutsch" aria-pressed="false">Deutsch</button>
+        <button class="chip" type="button" data-filter="englisch" aria-pressed="false">Englisch</button>
+        <button class="chip" type="button" data-filter="geschichte" aria-pressed="false">Geschichte</button>
+        <button class="chip" type="button" data-filter="biologie" aria-pressed="false">Biologie</button>
+        <button class="chip" type="button" data-filter="chemie" aria-pressed="false">Chemie</button>
+        <button class="chip" type="button" data-filter="physik" aria-pressed="false">Physik</button>
+        <button class="chip" type="button" data-filter="informatik" aria-pressed="false">Informatik</button>
+      </div>
+    </div>
+    <div id="library">
+      <div class="group" data-subject="allgemein">
+        <h3>Allgemein</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>Prüfungsvorbereitung</h4><button class="copy" type="button" data-target="p1" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p1">Du bist ein erfahrener Lerncoach für Gymnasiasten. Erstelle mir einen Lernplan und frage mich danach ab. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und habe in <span class="ph">[Anzahl]</span> Tagen eine Prüfung in <span class="ph">[Fach]</span> über <span class="ph">[Themen]</span>. Mein Ziel ist es, den Stoff wirklich zu verstehen. Gib den Lernplan als Tabelle mit den Tagen und Themen aus und stelle mir danach jeweils <span class="ph">[Anzahl]</span> Fragen, eine nach der anderen. Schreibe kurz und motivierend. Gib mir die richtige Antwort erst, nachdem ich selbst geantwortet habe.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>Text als Einstieg zusammenfassen</h4><button class="copy" type="button" data-target="p2" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p2">Du bist eine Lehrperson, die schwierige Texte verständlich macht. Fasse mir den folgenden Text zusammen. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und muss ihn für <span class="ph">[Fach]</span> lesen. Die Zusammenfassung soll mir einen Überblick geben, bevor ich den Text selbst lese. Antworte in höchstens fünf Stichpunkten und erkläre schwierige Begriffe am Schluss in einer kurzen Liste. Verwende einfache Sprache. Text: <span class="ph">[Text einfügen]</span></p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="mathematik">
+        <h3>Mathematik</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Schritt für Schritt lösen</h4><button class="copy" type="button" data-target="p3" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p3">Du bist eine geduldige Mathematiklehrperson an einem Schweizer Gymnasium. Hilf mir, die Aufgabe <span class="ph">[Aufgabe]</span> selbst zu lösen. Ich bin in der <span class="ph">[Klasse]</span> und wir behandeln gerade <span class="ph">[Thema]</span>. Gib mir nicht die Lösung, sondern stelle mir immer nur eine Frage auf einmal. Wenn ich einen Fehler mache, sag mir, dass etwas nicht stimmt, aber nicht, was die richtige Antwort ist. Auch wenn ich nach der Lösung frage, gib mir zuerst noch einen Hinweis. Schreibe kurz und ermutigend.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Eigene Lösung überprüfen</h4><button class="copy" type="button" data-target="p4" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p4">Du bist eine Mathematiklehrperson, die Prüfungen korrigiert. Überprüfe meine Lösung zur Aufgabe <span class="ph">[Aufgabe]</span>. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und möchte lernen, meine Fehler selbst zu finden. Wenn ein Fehler drin ist, nenne mir nur den Schritt, in dem er liegt, aber nicht die Korrektur. Antworte kurz und sachlich. Meine Lösung: <span class="ph">[Lösung einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Übungsaufgaben</h4><button class="copy" type="button" data-target="p5" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p5">Du bist eine Mathematiklehrperson an einem Schweizer Gymnasium. Erstelle mir <span class="ph">[Anzahl]</span> Übungsaufgaben zu <span class="ph">[Thema]</span>. Ich bin in der <span class="ph">[Klasse]</span> und bereite mich auf eine Prüfung vor. Ordne die Aufgaben nummeriert von leicht nach schwer. Schreibe die Aufgaben klar und ohne unnötigen Text. Zeige mir die Lösungen erst, wenn ich darum bitte.</p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="deutsch">
+        <h3>Deutsch</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Feedback zu einem Aufsatz</h4><button class="copy" type="button" data-target="p6" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p6">Du bist eine erfahrene Deutschlehrperson an einem Schweizer Gymnasium. Gib mir Feedback zu meinem <span class="ph">[Textsorte]</span> über <span class="ph">[Thema]</span>. Ich bin in der <span class="ph">[Klasse]</span> und der Text wird bewertet nach <span class="ph">[Kriterien, falls bekannt]</span>. Schreibe meinen Text nicht um. Nenne mir in drei Stichpunkten die wichtigsten Punkte zu Aufbau, Argumentation und Sprache, die ich selbst verbessern kann. Schreibe ehrlich, aber freundlich. Mein Text: <span class="ph">[Text einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Textinterpretation</h4><button class="copy" type="button" data-target="p7" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p7">Du bist eine Deutschlehrperson, die Schüler beim Interpretieren begleitet. Hilf mir, <span class="ph">[Text / Gedicht]</span> von <span class="ph">[Autor]</span> selbst zu interpretieren. Ich bin in der <span class="ph">[Klasse]</span> und muss eine Interpretation schreiben. Gib mir keine fertige Interpretation, sondern stelle mir nacheinander Fragen, die mich zu wichtigen Stellen und ihrer Bedeutung führen. Schreibe einfach und verständlich. Text: <span class="ph">[Text einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Grammatik und Kommas</h4><button class="copy" type="button" data-target="p8" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p8">Du bist eine Deutschlehrperson, die Grammatik einfach erklärt. Erkläre mir die Regel zu <span class="ph">[z. B. Kommas bei Nebensätzen]</span>. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und mache bei dieser Regel oft Fehler. Erkläre sie in höchstens drei Sätzen mit zwei Beispielen. Gib mir danach fünf Übungssätze und korrigiere meine Antworten mit einer kurzen Begründung. Verwende einfache Sprache.</p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="englisch">
+        <h3>Englisch</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Wörtli abfragen</h4><button class="copy" type="button" data-target="p9" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p9">Du bist eine Englischlehrperson, die Vokabeln abfragt. Frage mich die folgenden Wörter ab. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und habe bald einen Wörtlitest. Frage immer nur ein Wort auf einmal, abwechselnd Deutsch–Englisch und Englisch–Deutsch. Wiederhole am Schluss die Wörter, die ich falsch hatte. Schreibe kurz. Wörter: <span class="ph">[Wörter einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Sprechen üben</h4><button class="copy" type="button" data-target="p10" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p10">You are a friendly English teacher. Have a conversation with me about <span class="ph">[Thema]</span>. I am a student at a Swiss Gymnasium at level <span class="ph">[B1 / B2]</span> and want to practise speaking. Ask me one question at a time and keep your answers short. Use simple, natural English. At the end of the conversation, list my most important mistakes and explain them briefly in German.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Text korrigieren</h4><button class="copy" type="button" data-target="p11" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p11">Du bist eine Englischlehrperson an einem Schweizer Gymnasium. Korrigiere meinen englischen Text. Ich bin in der <span class="ph">[Klasse]</span> und möchte aus meinen Fehlern lernen. Schreibe den Text nicht neu, sondern liste meine Fehler in einer Tabelle auf: Fehler, Korrektur und die Regel dahinter. Erkläre die Regeln einfach und auf Deutsch. Mein Text: <span class="ph">[Text einfügen]</span></p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="geschichte">
+        <h3>Geschichte</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Quellen finden</h4><button class="copy" type="button" data-target="p12" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p12">Du bist eine Geschichtslehrperson, die Schüler bei der Recherche unterstützt. Hilf mir, Quellen für meine Arbeit über <span class="ph">[Thema]</span> zu finden. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und muss die Quellen selbst in der Bibliothek oder im Internet suchen. Nenne mir in einer Liste wichtige Fachbegriffe, Ereignisse und Autoren zu diesem Thema, mit denen ich suchen kann. Gib mir keine Links und keine Buchtitel an. Schreibe sachlich und kurz.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Zusammenhänge verstehen</h4><button class="copy" type="button" data-target="p13" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p13">Du bist eine erfahrene Geschichtslehrperson an einem Schweizer Gymnasium. Erkläre mir die Ursachen und Folgen von <span class="ph">[Ereignis]</span>. Ich bin in der <span class="ph">[Klasse]</span> und wir haben im Unterricht vor allem <span class="ph">[Unterthemen]</span> behandelt. Gliedere die Erklärung in die zwei Teile «Ursachen» und «Folgen» und schreibe höchstens 200 Wörter. Verwende einfache Sprache, aber die richtigen Fachbegriffe. Stelle mir danach zwei Fragen, bei denen ich die Zusammenhänge selbst erklären muss.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Quellentext verstehen</h4><button class="copy" type="button" data-target="p14" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p14">Du bist eine Geschichtslehrperson, die Quellenanalyse unterrichtet. Hilf mir, die folgende historische Quelle selbst zu analysieren. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und muss herausfinden, wer sie geschrieben hat, für wen und mit welcher Absicht. Gib mir keine fertige Analyse, sondern stelle mir nacheinander Fragen, die mich dorthin führen. Schreibe einfach und verständlich. Quelle: <span class="ph">[Quelle einfügen]</span></p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="biologie">
+        <h3>Biologie</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Thema erklären</h4><button class="copy" type="button" data-target="p15" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p15">Du bist eine erfahrene Biologielehrperson an einem Schweizer Gymnasium. Erkläre mir <span class="ph">[Thema]</span>. Ich bin in der <span class="ph">[Klasse]</span> und schreibe bald eine Prüfung darüber. Wir haben im Unterricht vor allem <span class="ph">[Unterthemen]</span> behandelt, geh also nicht über diesen Stoff hinaus. Gliedere die Erklärung in kurze Abschnitte und schreibe höchstens 200 Wörter. Verwende einfache Sprache, aber die richtigen Fachbegriffe. Stelle mir danach drei Fragen, mit denen ich mein Wissen testen kann.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Abfragen</h4><button class="copy" type="button" data-target="p16" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p16">Du bist eine Biologielehrperson, die mich auf eine Prüfung vorbereitet. Frage mich zu <span class="ph">[Thema]</span> ab. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und wir haben <span class="ph">[Unterthemen]</span> behandelt. Stelle mir immer nur eine Frage auf einmal und gib mir nach jeder Antwort eine kurze Rückmeldung, was richtig war und was gefehlt hat. Schreibe kurz und ermutigend.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Begriffe vergleichen</h4><button class="copy" type="button" data-target="p17" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p17">Du bist eine Biologielehrperson, die Unterschiede klar erklärt. Erkläre mir den Unterschied zwischen <span class="ph">[Begriff A]</span> und <span class="ph">[Begriff B]</span>. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und verwechsle die beiden oft. Stelle den Unterschied in einer kleinen Tabelle mit einem Beispiel dar. Gib mir danach drei Aussagen, bei denen ich entscheiden muss, welcher Begriff gemeint ist. Verwende einfache Sprache.</p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="chemie">
+        <h3>Chemie</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Reaktionsgleichungen</h4><button class="copy" type="button" data-target="p18" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p18">Du bist eine geduldige Chemielehrperson an einem Schweizer Gymnasium. Hilf mir, die Reaktionsgleichung <span class="ph">[Gleichung]</span> selbst auszugleichen. Ich bin in der <span class="ph">[Klasse]</span> und lerne das gerade. Gib mir nicht die Lösung, sondern stelle mir immer nur eine Frage auf einmal. Auch wenn ich nach der Lösung frage, gib mir zuerst noch einen Hinweis. Schreibe kurz und verständlich.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Konzept mit Alltagsbeispiel</h4><button class="copy" type="button" data-target="p19" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p19">Du bist eine Chemielehrperson, die Chemie mit dem Alltag verbindet. Erkläre mir <span class="ph">[z. B. Säuren und Basen]</span>. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und finde das Thema schwierig. Erkläre es in höchstens 150 Wörtern mit einem Beispiel aus dem Alltag. Verwende einfache Sprache, aber die richtigen Fachbegriffe. Prüfe danach mit einer Frage, ob ich es verstanden habe.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Übungsaufgaben</h4><button class="copy" type="button" data-target="p20" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p20">Du bist eine Chemielehrperson an einem Schweizer Gymnasium. Erstelle mir <span class="ph">[Anzahl]</span> Übungsaufgaben zu <span class="ph">[Thema]</span>. Ich bin in der <span class="ph">[Klasse]</span> und bereite mich auf eine Prüfung vor. Ordne die Aufgaben nummeriert von leicht nach schwer. Schreibe die Aufgaben klar und ohne unnötigen Text. Zeige mir die Lösungen erst, wenn ich darum bitte.</p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="physik">
+        <h3>Physik</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Aufgabe lösen</h4><button class="copy" type="button" data-target="p21" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p21">Du bist eine geduldige Physiklehrperson an einem Schweizer Gymnasium. Hilf mir, die folgende Aufgabe selbst zu lösen. Ich bin in der <span class="ph">[Klasse]</span> und wir behandeln gerade <span class="ph">[Thema]</span>. Sag mir nicht, welche Formel ich brauche, sondern hilf mir mit Fragen herauszufinden, welche Grössen gegeben und gesucht sind und wie sie zusammenhängen. Stelle immer nur eine Frage auf einmal. Schreibe kurz und verständlich. Aufgabe: <span class="ph">[Aufgabe einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Konzept verstehen</h4><button class="copy" type="button" data-target="p22" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p22">Du bist eine Physiklehrperson, die Physik anschaulich erklärt. Erkläre mir <span class="ph">[z. B. die Trägheit]</span>. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und verstehe das Thema noch nicht richtig. Erkläre es in höchstens 150 Wörtern mit einem Beispiel aus dem Alltag und ohne komplizierte Formeln. Verwende einfache Sprache. Stelle mir danach eine Verständnisfrage.</p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Lösungsweg prüfen</h4><button class="copy" type="button" data-target="p23" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p23">Du bist eine Physiklehrperson, die Prüfungen korrigiert. Überprüfe meinen Lösungsweg zur folgenden Aufgabe. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und möchte meine Fehler selbst finden. Prüfe vor allem die Einheiten und die Rechenschritte. Nenne mir nur den Schritt, in dem ein Fehler liegt, aber nicht die Korrektur. Antworte kurz und sachlich. Aufgabe: <span class="ph">[Aufgabe einfügen]</span> Mein Lösungsweg: <span class="ph">[Lösung einfügen]</span></p>
+          </article>
+        </div>
+      </div>
+      <div class="group" data-subject="informatik">
+        <h3>Informatik</h3>
+        <div class="cards">
+          <article class="prompt">
+            <div class="prompt-top"><h4>1. Fehler im Code finden</h4><button class="copy" type="button" data-target="p24" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p24">Du bist eine Informatiklehrperson, die Programmieranfängern hilft. Hilf mir, den Fehler in meinem Code selbst zu finden. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und programmiere in <span class="ph">[Programmiersprache]</span>. Der Code soll <span class="ph">[was er tun soll]</span>, macht aber <span class="ph">[was passiert]</span>. Gib mir keinen korrigierten Code, sondern einen Hinweis, in welchem Teil der Fehler liegt und wonach ich suchen muss. Schreibe kurz und verständlich. Code: <span class="ph">[Code einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>2. Code verstehen</h4><button class="copy" type="button" data-target="p25" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p25">Du bist eine Informatiklehrperson, die Code verständlich erklärt. Erkläre mir den folgenden Code in <span class="ph">[Programmiersprache]</span>. Ich bin in der <span class="ph">[Klasse]</span> Gymnasium und noch Anfänger. Erkläre ihn Zeile für Zeile in einer nummerierten Liste und verwende einfache Sprache. Stelle mir danach eine Frage, ob ich den Code verstanden habe. Code: <span class="ph">[Code einfügen]</span></p>
+          </article>
+          <article class="prompt">
+            <div class="prompt-top"><h4>3. Konzept üben</h4><button class="copy" type="button" data-target="p26" aria-label="Prompt kopieren"><svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span class="toast" role="status">Kopiert!</span></button></div>
+            <p class="text" id="p26">Du bist eine Informatiklehrperson an einem Schweizer Gymnasium. Erkläre mir <span class="ph">[z. B. Schleifen]</span> in <span class="ph">[Programmiersprache]</span>. Ich bin in der <span class="ph">[Klasse]</span> und lerne das gerade. Erkläre es in höchstens 150 Wörtern mit einem kurzen Codebeispiel. Verwende einfache Sprache. Gib mir danach eine kleine Übungsaufgabe, die ich selbst programmieren muss, und zeige mir die Lösung erst, wenn ich darum bitte.</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BEREICH 4: CHATBOT-VERGLEICH ================= -->
+<section class="area" id="chatbots">
+  <div class="wrap">
+    <span class="eyebrow">Chatbot-Vergleich</span>
+    <div class="carousel" id="carousel" style="--rot:7s">
+      <div class="track" id="track" tabindex="0" aria-roledescription="Karussell" aria-label="Chatbot-Karten">
+
+        <article class="bot" aria-roledescription="Karte" aria-label="1 / 5">
+          <div class="bot-head"><h3><strong>ChatGPT</strong> <span class="maker">· OpenAI 🇺🇸</span></h3></div>
+          <div class="bot-body">
+            <p>Seit Ende 2022 gibt es ChatGPT, und wahrscheinlich hast du ihn schon benutzt. Gratis kannst du unbegrenzt schreiben, und ChatGPT sucht auch im Internet. Das Beste für die Schule: Es gibt einen <strong>Lernmodus</strong>, in dem ChatGPT dir Fragen stellt, statt dir einfach die Antwort hinzuschreiben.</p>
+            <p class="bot-test"><strong>Im Test:</strong> Hat super erklärt und richtig gerechnet. Aber Achtung: Wenn du nach der Lösung fragst, verrät er sie sofort.</p>
+            <div class="bot-foot">
+              <p class="pill ok">✅ <strong>Perfekt für:</strong> Lernen mit dem Lernmodus</p>
+              <p class="pill warn">⚠️ <strong>Achtung:</strong> Deine Chats werden zum Training verwendet. Schalte das in den Einstellungen aus!</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="bot" aria-roledescription="Karte" aria-label="2 / 5">
+          <div class="bot-head"><h3><strong>Claude</strong> <span class="maker">· Anthropic 🇺🇸</span></h3></div>
+          <div class="bot-body">
+            <p>Claude gibt es seit 2023. Auch gratis kann Claude im Internet suchen und sogar Dateien für dich erstellen. Einen Lernmodus gibt es in der Gratisversion aber nicht.</p>
+            <p class="bot-test"><strong>Im Test:</strong> Sehr gute Erklärungen und knifflige Übungsfragen. Bei den Quellen gab es aber keine Links, und eine falsche Antwort von mir hat er als richtig durchgehen lassen.</p>
+            <div class="bot-foot">
+              <p class="pill ok">✅ <strong>Perfekt für:</strong> Themen gut erklärt bekommen</p>
+              <p class="pill warn">⚠️ <strong>Achtung:</strong> Erst ab 18 erlaubt! Training in den Einstellungen ausschalten.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="bot" aria-roledescription="Karte" aria-label="3 / 5">
+          <div class="bot-head"><h3><strong>Vibe</strong> <span class="maker">· Mistral AI 🇫🇷</span></h3></div>
+          <div class="bot-body">
+            <p>Vibe kommt aus Paris und ist einer der wenigen grossen Chatbots aus Europa. Bis Mai 2026 hiess er noch «Le Chat». Vibe sucht im Internet, gratis sind die Nachrichten aber begrenzt.</p>
+            <p class="bot-test"><strong>Im Test:</strong> Einer der Besten! Die Übungsfragen waren richtig gut, und meinen absichtlichen Fehler hat Vibe sofort erkannt und mir nur einen Tipp gegeben. Bei der Quellensuche haben alle Links funktioniert.</p>
+            <div class="bot-foot">
+              <p class="pill ok">✅ <strong>Perfekt für:</strong> Quellen suchen und üben</p>
+              <p class="pill warn">⚠️ <strong>Achtung:</strong> Training in den Einstellungen ausschalten. Ab 13 nur mit Erlaubnis der Eltern.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="bot" aria-roledescription="Karte" aria-label="4 / 5">
+          <div class="bot-head"><h3><strong>DeepSeek</strong> <span class="maker">· DeepSeek 🇨🇳</span></h3></div>
+          <div class="bot-body">
+            <p>DeepSeek ist komplett gratis und bekannt dafür, dass die Firma ihre KI-Modelle offen ins Internet stellt. In der App kannst du die Suche und den Modus «Denken» einschalten. Dann überlegt DeepSeek länger, bevor er antwortet.</p>
+            <p class="bot-test"><strong>Im Test:</strong> Hat richtig gerechnet und echte Bücher mit funktionierenden Links gefunden. Aber: Die Erklärung war viel zu kompliziert, als ob ich schon studieren würde. Und beim Üben hat er mir die Lösung fast vorgesagt.</p>
+            <div class="bot-foot">
+              <p class="pill ok">✅ <strong>Perfekt für:</strong> Quellen suchen</p>
+              <p class="pill warn">⚠️ <strong>Achtung:</strong> Deine Daten landen in China! In Italien ist DeepSeek deswegen eingeschränkt. Unter 18 nur mit Erlaubnis der Eltern.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="bot" aria-roledescription="Karte" aria-label="5 / 5">
+          <div class="bot-head"><h3><strong>Apertus</strong> <span class="maker">· ETH Zürich &amp; EPFL 🇨🇭</span></h3></div>
+          <div class="bot-body">
+            <p>Apertus ist ein Schweizer Projekt der ETH Zürich, der EPFL und des CSCS und seit September 2025 verfügbar. Das Spezielle: Alles ist öffentlich, sogar womit die KI trainiert wurde. Eine eigene App gibt es nicht, du kannst Apertus aber gratis über Public AI nutzen.</p>
+            <p class="bot-test"><strong>Im Test:</strong> Als einziger hat mir Apertus die Lösung nicht einfach verraten, sondern mich motiviert weiterzumachen. Leider hat er aber auch Fehler gemacht, falsche Antworten gelobt, und kein einziger Link hat funktioniert.</p>
+            <div class="bot-foot">
+              <p class="pill ok">✅ <strong>Perfekt für:</strong> alle, die wissen wollen, wie eine KI von innen aussieht</p>
+              <p class="pill warn">⚠️ <strong>Achtung:</strong> Macht noch Fehler. Über Public AI erst ab 18.</p>
+            </div>
+          </div>
+        </article>
+
+      </div>
+      <div class="car-ctrl">
+        <button class="arrow" id="prev" aria-label="Vorherige Karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <div class="dots" id="dots"></div>
+        <button class="arrow playpause" id="playpause" type="button" aria-label="Automatisches Weiterblättern anhalten"><svg class="ic-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="3.5" height="14"/><rect x="14" y="5" width="3.5" height="14"/></svg><svg class="ic-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5l11 7-11 7z"/></svg></button>
+        <button class="arrow" id="next" aria-label="Nächste Karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+
+    <div class="block-gap">
+      <h3 class="h3">Auf einen Blick</h3>
+      <div class="table-wrap">
+        <table class="overview">
+          <thead><tr><th scope="col"></th><th scope="col">ChatGPT</th><th scope="col">Claude</th><th scope="col">Vibe</th><th scope="col">DeepSeek</th><th scope="col">Apertus</th></tr></thead>
+          <tbody>
+            <tr><th scope="row"><strong>Gratis</strong></th><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><th scope="row"><strong>Pro-Version</strong></th><td>20Chf/Monat</td><td>17Chf/Monat</td><td>15Chf/Monat</td><td>–</td><td>–</td></tr>
+            <tr><th scope="row"><strong>Erlaubt ab</strong></th><td>13 (mit Eltern)</td><td>18</td><td>13 (mit Eltern)</td><td>unter 18 nur mit Eltern</td><td>18</td></tr>
+            <tr><th scope="row"><strong>Lernmodus</strong></th><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr>
+            <tr><th scope="row"><strong>Erklärungen</strong></th><td>🟢</td><td>🟢</td><td>🟢</td><td>🟡 zu schwierig</td><td>🔴 Fehler</td></tr>
+            <tr><th scope="row"><strong>Quellen</strong></th><td>🟡</td><td>🟡 keine Links</td><td>🟢</td><td>🟢</td><td>🔴</td></tr>
+            <tr><th scope="row"><strong>Datenschutz</strong></th><td>🟡 USA</td><td>🟡 USA</td><td>🟢 EU</td><td>🔴 China</td><td>🟡 Plattform USA</td></tr>
+            <tr><th scope="row"><strong>Gut für</strong></th><td>Lernen mit Lernmodus</td><td>Erklärungen</td><td>Quellen und Üben</td><td>Quellen</td><td>Interesse an Transparenz</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="legend">
+        <p>🟢 gut · 🟡 teilweise · 🔴 schlecht</p>
+        <p class="note"><em>Stand: Oktober 2026. Die genauen Testergebnisse findest du in meiner Maturaarbeit.</em></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BEREICH 5: THEORIE ================= -->
+<section class="area" id="theorie">
+  <div class="wrap">
+    <div class="theory-intro">
+      <span class="eyebrow">Theorie</span>
+      <h2 class="h2">Wie funktioniert eigentlich ein Chatbot? </h2>
+      <p class="lead">Du benutzt ihn vielleicht jeden Tag, aber weisst du, was im Hintergrund passiert? Hier die Kurzversion</p>
+    </div>
+
+    <div class="theory">
+      <div class="t-block">
+        <h3>Wie lernt eine KI?</h3>
+        <div class="t-body">
+          <p>Eine KI lernt aus Beispielen. Stell dir vor, du zeigst einem Programm tausende Bilder von Hunden und Katzen. Mit der Zeit erkennt es die Muster, zum Beispiel spitze Ohren oder lange Schnauzen. Danach kann es bei einem neuen Bild selbst sagen, ob es ein Hund oder eine Katze ist. Das nennt man maschinelles Lernen.</p>
+        </div>
+      </div>
+
+      <div class="t-block">
+        <h3>Was steckt hinter ChatGPT und Co.?</h3>
+        <div class="t-body">
+          <p class="info">Hinter jedem Chatbot steckt ein <strong>Large Language Model</strong>, kurz LLM. Das ist ein riesiges Programm, das mit unglaublich vielen Texten aus dem Internet trainiert wurde.</p>
+          <p><strong>Beim Training</strong> übt das Modell immer wieder, fehlende Wörter zu erraten:</p>
+          <p class="gap-demo">«Statt nach links abzubiegen, bog sie <span class="blank">___</span> ab.»</p>
+          <p>Am Anfang rät es zufällig. Nach jedem Versuch wird es ein kleines bisschen besser, millionenfach, bis es Sprache richtig gut beherrscht.</p>
+          <p><strong>Wenn du eine Frage stellst</strong>, macht das Modell im Grunde dasselbe: Es berechnet Wort für Wort, was am wahrscheinlichsten als Nächstes kommt. Ein Chatbot ist also eine extrem gute <strong>Autovervollständigung</strong>, so wie bei deiner Handytastatur, nur viel schlauer. Weil dabei auch der Zufall mitspielt, bekommst du auf dieselbe Frage nicht immer genau dieselbe Antwort.</p>
+        </div>
+      </div>
+
+      <div class="t-block">
+        <h3>Wie versteht er Zusammenhänge?</h3>
+        <div class="t-body">
+          <p>Nimm den Satz: <span class="quote" style="display:block;margin:.6rem 0">«Der Hund holte den Ball nicht, weil <strong>er</strong> zu müde war.»</span> Du weisst sofort, dass mit «er» der Hund gemeint ist. Das Modell muss das zuerst berechnen. Es schaut für jedes Wort, welche anderen Wörter dafür wichtig sind. Steht im Satz «weil er zu weit weg war», ist plötzlich der Ball gemeint.</p>
+        </div>
+      </div>
+
+      <div class="t-block">
+        <h3>Warum macht ein Chatbot Fehler? </h3>
+        <div class="t-body">
+          <p>Ein Chatbot wählt die <strong>wahrscheinlichste</strong> Antwort, aber nicht unbedingt die <strong>richtige</strong>. Er versteht nicht wirklich, was er schreibt, sondern setzt Sprachmuster zusammen. Darum kann er:</p>
+          <ul class="risk">
+            <li><strong>Dinge erfinden</strong>, zum Beispiel Bücher oder Quellen, die es gar nicht gibt. Das nennt man <strong>Halluzination</strong>.</li>
+            <li><strong>Vorurteile übernehmen</strong>, wenn diese in seinen Trainingstexten oft vorkommen.</li>
+            <li><strong>veraltet sein</strong>, weil er nur das weiss, was bis zu seinem Training im Internet stand.</li>
+          </ul>
+          <p class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9.5 17H2.5z"/><path d="M12 10v4.5M12 17.5v.01"/></svg><span>Das Gefährliche: Die Antworten klingen immer überzeugend, auch wenn sie falsch sind. Ohne Vorwissen merkst du den Fehler oft nicht.</span></p>
+        </div>
+      </div>
+
+      <div class="final">
+        <h3>Und was heisst das für dich? </h3>
+        <p>Ein Chatbot ist ein super Werkzeug, aber kein Lexikon. Nutze ihn, um Dinge zu verstehen und zu üben, und überprüfe wichtige Antworten immer selbst. Wie das am besten geht, siehst du bei den <a href="#prompts">Prompts</a> und den <a href="#dos-donts">Do’s &amp; Don’ts</a>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="to-top"><a href="#start" aria-label="Nach oben"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></a></div>
+</section>
+</main>
+
+<script>
+(function(){
+  /* ---------- Menü / Hamburger ---------- */
+  var burger=document.getElementById('burger'), menu=document.getElementById('menu');
+  function setMenu(open){burger.setAttribute('aria-expanded',open?'true':'false');burger.setAttribute('aria-label',open?'Menü schliessen':'Menü öffnen');menu.classList.toggle('open',open);}
+  burger.addEventListener('click',function(){setMenu(burger.getAttribute('aria-expanded')!=='true');});
+  menu.addEventListener('click',function(e){if(e.target.closest('a'))setMenu(false);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')setMenu(false);});
+  document.addEventListener('click',function(e){if(!e.target.closest('.nav'))setMenu(false);});
+
+  /* ---------- Bereiche als eigene Seiten ---------- */
+  var links=[].slice.call(document.querySelectorAll('.nav a.link'));
+  var ids=links.map(function(a){return a.dataset.sec;});
+  var sections=ids.map(function(id){return document.getElementById(id);});
+  function show(id,scroll){
+    if(ids.indexOf(id)<0)id='start';
+    sections.forEach(function(s){s.hidden=s.id!==id;});
+    links.forEach(function(a){var on=a.dataset.sec===id;a.classList.toggle('active',on);if(on)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+    if(scroll!==false)window.scrollTo(0,0);
+    if(id==='chatbots'&&window.__carouselReset)window.__carouselReset();
+  }
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a[href^="#"]');if(!a)return;
+    var id=a.getAttribute('href').slice(1);if(ids.indexOf(id)<0)return;
+    e.preventDefault();
+    try{if(location.hash!=='#'+id)history.pushState(null,'','#'+id);}catch(err){location.hash=id;return;}
+    show(id);
+  });
+  window.addEventListener('hashchange',function(){show(location.hash.slice(1));});
+  window.addEventListener('popstate',function(){show(location.hash.slice(1));});
+  show(location.hash.slice(1),false);
+
+  /* ---------- Filter ---------- */
+  var chips=[].slice.call(document.querySelectorAll('.chip')), groups=[].slice.call(document.querySelectorAll('.group'));
+  chips.forEach(function(c){c.addEventListener('click',function(){
+    var f=c.dataset.filter;
+    chips.forEach(function(x){x.setAttribute('aria-pressed',x===c?'true':'false');});
+    groups.forEach(function(g){g.hidden=!(f==='alle'||g.dataset.subject===f);});
+    var lib=document.getElementById('library'), bar=document.querySelector('.filters-bar');
+    var top=lib.getBoundingClientRect().top, limit=bar.getBoundingClientRect().bottom+8;
+    if(top<limit-2){window.scrollTo({top:window.scrollY+top-limit-16,behavior:'smooth'});}
+  });});
+
+  /* ---------- Kopieren ---------- */
+  function fallbackCopy(text){
+    var ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+    var ok=false;try{ok=document.execCommand('copy');}catch(e){}document.body.removeChild(ta);return ok;
+  }
+  function selectText(el){try{var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}catch(e){}}
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var el=document.getElementById(btn.dataset.target), text=el.textContent;
+      function done(){btn.classList.add('done');clearTimeout(btn._t);btn._t=setTimeout(function(){btn.classList.remove('done');},1800);}
+      function fail(){if(fallbackCopy(text))done();else selectText(el);}
+      try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,fail);}else fail();}catch(e){fail();}
+    });
+  });
+
+  /* ---------- Karussell ---------- */
+  var track=document.getElementById('track'), cards=[].slice.call(track.querySelectorAll('.bot')), dotsBox=document.getElementById('dots');
+  var prev=document.getElementById('prev'), next=document.getElementById('next'), idx=0;
+  cards.forEach(function(card,i){var d=document.createElement('button');d.className='dot';d.type='button';d.setAttribute('aria-label',(i+1)+' / '+cards.length);d.addEventListener('click',function(){go(i);});dotsBox.appendChild(d);});
+  var dots=[].slice.call(dotsBox.children);
+  function step(){return cards.length>1?cards[1].offsetLeft-cards[0].offsetLeft:track.clientWidth;}
+  function go(i){i=Math.max(0,Math.min(cards.length-1,i));track.scrollTo({left:cards[i].offsetLeft-cards[0].offsetLeft,behavior:'smooth'});update(i);}
+  function update(i){var changed=i!==idx;idx=i;dots.forEach(function(d,k){d.setAttribute('aria-current',k===i?'true':'false');});prev.disabled=i===0;next.disabled=i===cards.length-1;if(changed||!dots[i].classList.contains('run'))restart();}
+  var raf;track.addEventListener('scroll',function(){cancelAnimationFrame(raf);raf=requestAnimationFrame(function(){var i=Math.round(track.scrollLeft/step());if(i!==idx)update(Math.max(0,Math.min(cards.length-1,i)));});},{passive:true});
+  prev.addEventListener('click',function(){go(idx-1);});next.addEventListener('click',function(){go(idx+1);});
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight')return;
+    var t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+    var r=track.getBoundingClientRect(), visible=r.top<window.innerHeight&&r.bottom>0;
+    if(!(track.contains(t)||visible))return;
+    e.preventDefault();go(idx+(e.key==='ArrowRight'?1:-1));
+  });
+  window.addEventListener('resize',function(){track.scrollLeft=cards[idx].offsetLeft-cards[0].offsetLeft;});
+  /* ---------- Automatisches Weiterblättern ---------- */
+  var car=document.getElementById('carousel'), pp=document.getElementById('playpause'), holds={};
+  function restart(){dots.forEach(function(d){d.classList.remove('run');});var d=dots[idx];if(!d)return;void d.offsetWidth;d.classList.add('run');}
+  function hold(key,on){if(on)holds[key]=1;else delete holds[key];car.classList.toggle('paused',Object.keys(holds).length>0);}
+  function setAuto(on){car.classList.toggle('auto',on);pp.setAttribute('aria-label',on?'Automatisches Weiterblättern anhalten':'Automatisches Weiterblättern starten');pp.setAttribute('aria-pressed',on?'false':'true');restart();}
+  dotsBox.addEventListener('animationend',function(e){if(!car.classList.contains('auto'))return;var d=e.target.closest('.dot');if(!d||!d.classList.contains('run'))return;go(idx>=cards.length-1?0:idx+1);});
+  pp.addEventListener('click',function(){setAuto(!car.classList.contains('auto'));});
+  track.addEventListener('mouseenter',function(){hold('hover',true);});
+  track.addEventListener('mouseleave',function(){hold('hover',false);});
+  track.addEventListener('focusin',function(){hold('focus',true);});
+  track.addEventListener('focusout',function(){hold('focus',false);});
+  track.addEventListener('touchstart',function(){hold('touch',true);},{passive:true});
+  track.addEventListener('touchend',function(){hold('touch',false);restart();},{passive:true});
+  var reduce=false;try{reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+  setAuto(!reduce);
+  window.__carouselReset=function(){restart();track.style.scrollBehavior='auto';track.scrollLeft=cards[idx].offsetLeft-cards[0].offsetLeft;track.style.scrollBehavior='';};
+  update(0);
+})();
+</script>
+</body>
+</html>
